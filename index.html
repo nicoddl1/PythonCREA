@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Taller Interactivo de Python - Fundamentos</title>
+  
+  <!-- CodeMirror CSS & JS (para resaltado de sintaxis) -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/theme/dracula.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/python/python.min.js"></script>
+
+  <!-- Skulpt Engine (Intérprete oficial de Python en JS) -->
+  <script src="https://cdn.jsdelivr.net/npm/skulpt@1.2.0/dist/skulpt.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/skulpt@1.2.0/dist/skulpt-stdlib.js"></script>
+
+  <style>
+    :root {
+      --bg-dark: #0f172a;
+      --card-bg: #1e293b;
+      --accent: #38bdf8;
+      --primary: #6366f1;
+      --success: #10b981;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; }
+    body { background-color: var(--bg-dark); color: var(--text); padding: 20px; min-height: 100vh; }
+    
+    .app-container { max-width: 1000px; margin: 0 auto; }
+    
+    header {
+      background: var(--card-bg);
+      padding: 20px 25px;
+      border-radius: 12px;
+      margin-bottom: 20px;
+      border: 1px solid #334155;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 15px;
+    }
+    
+    .title-area h1 { font-size: 1.5rem; color: var(--accent); margin-bottom: 4px; }
+    .title-area p { font-size: 0.9rem; color: var(--text-muted); }
+    
+    .score-badge {
+      background: #090d16;
+      padding: 10px 18px;
+      border-radius: 8px;
+      font-size: 1.05rem;
+      font-weight: bold;
+      border: 1px solid #334155;
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .steps-nav { display: flex; gap: 10px; margin-bottom: 20px; overflow-x: auto; padding-bottom: 5px; }
+    .step-btn { flex: 1; min-width: 140px; background: var(--card-bg); border: 1px solid #334155; color: var(--text-muted); padding: 12px 15px; border-radius: 8px; cursor: pointer; text-align: center; font-weight: 600; transition: all 0.2s ease; }
+    .step-btn:hover { background: #334155; color: white; }
+    .step-btn.active { background: var(--primary); color: white; border-color: var(--primary); }
+    .step-btn.completed { border-color: var(--success); }
+
+    .lesson-section { display: none; background: var(--card-bg); border-radius: 12px; padding: 25px; border: 1px solid #334155; margin-bottom: 20px; }
+    .lesson-section.active { display: block; animation: fadeIn 0.3s ease; }
+
+    h2 { font-size: 1.3rem; color: #a7f3d0; margin-bottom: 12px; }
+    .theory-box { background: #090d16; border-left: 4px solid var(--accent); padding: 15px; border-radius: 6px; margin-bottom: 20px; line-height: 1.6; font-size: 0.95rem; }
+    .theory-box code { background: #334155; padding: 2px 6px; border-radius: 4px; color: #38bdf8; font-family: monospace; }
+
+    .sub-task { background: #182232; border: 1px solid #334155; border-radius: 8px; padding: 18px; margin-bottom: 20px; }
+    .sub-task h3 { font-size: 1.05rem; color: var(--accent); margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
+    .badge { font-size: 0.75rem; padding: 4px 10px; border-radius: 4px; text-transform: uppercase; font-weight: bold; }
+    .badge-guided { background: #3b82f6; color: white; }
+    .badge-auto { background: #8b5cf6; color: white; }
+
+    .editor-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 15px; }
+    @media (max-width: 768px) { .editor-grid { grid-template-columns: 1fr; } }
+
+    .editor-container, .console-container { display: flex; flex-direction: column; border: 1px solid #334155; border-radius: 8px; overflow: hidden; }
+    .editor-header, .console-header { background: #0f172a; padding: 10px 14px; font-size: 0.85rem; font-weight: bold; color: var(--text-muted); display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #334155; }
+
+    .CodeMirror { height: 180px; font-family: 'Fira Code', 'Consolas', 'Courier New', monospace; font-size: 14px; }
+    textarea.code-fallback {
+      height: 180px; width: 100%; background: #1e1e2e; color: #a6e3a1;
+      font-family: 'Fira Code', 'Consolas', monospace; font-size: 14px;
+      line-height: 1.5; padding: 12px; border: none; outline: none; resize: vertical;
+    }
+
+    .console-output { background: #050811; color: #38bdf8; font-family: 'Consolas', 'Courier New', monospace; padding: 12px; height: 180px; overflow-y: auto; white-space: pre-wrap; font-size: 0.9rem; line-height: 1.4; }
+
+    .btn-run { background: var(--success); color: white; border: none; padding: 8px 18px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 0.9rem; transition: transform 0.1s, opacity 0.2s; }
+    .btn-run:hover { opacity: 0.9; }
+    .btn-run:active { transform: scale(0.96); }
+    .btn-reset { background: #475569; color: white; border: none; padding: 4px 10px; border-radius: 4px; cursor: pointer; font-size: 0.8rem; }
+
+    .feedback-msg { margin-top: 12px; padding: 12px; border-radius: 6px; font-size: 0.9rem; font-weight: 600; display: none; }
+    .feedback-msg.success { background: #065f46; color: #a7f3d0; border: 1px solid #10b981; }
+    .feedback-msg.error { background: #7f1d1d; color: #fecaca; border: 1px solid #ef4444; }
+
+    .nav-actions { display: flex; justify-content: space-between; margin-top: 20px; }
+    .btn-nav { background: var(--primary); color: white; border: none; padding: 10px 20px; border-radius: 8px; font-weight: bold; cursor: pointer; }
+    .btn-nav:disabled { background: #475569; cursor: not-allowed; }
+
+    .final-card { text-align: center; padding: 40px 20px; }
+    .final-score { font-size: 3.5rem; color: var(--accent); font-weight: bold; margin: 15px 0; }
+
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+  </style>
+</head>
+<body>
+
+<div class="app-container">
+  <header>
+    <div class="title-area">
+      <h1>🐍 Taller Interactivo de Python</h1>
+      <p>Aprende variables, entrada de datos y estructuras condicionales (Web App)</p>
+    </div>
+    <div class="score-badge">
+      <span>Puntaje: <strong id="score-val" style="color:var(--accent);">0</strong> / 100</span>
+    </div>
+  </header>
+
+  <!-- Pestañas de navegación -->
+  <div class="steps-nav">
+    <button class="step-btn active" id="nav-btn-1" onclick="switchStep(1)">1. Variables & Print</button>
+    <button class="step-btn" id="nav-btn-2" onclick="switchStep(2)">2. Lectura (input)</button>
+    <button class="step-btn" id="nav-btn-3" onclick="switchStep(3)">3. Condicionales</button>
+    <button class="step-btn" id="nav-btn-4" onclick="switchStep(4)">4. Proyecto Final</button>
+  </div>
+
+  <!-- SECCIÓN 1 -->
+  <div id="step-1" class="lesson-section active">
+    <h2>Apartado 1: Variables y la instrucción <code>print()</code></h2>
+    <div class="theory-box">
+      Una <strong>variable</strong> almacena datos. En Python asignamos un valor con <code>=</code>.<br>
+      Para mostrar el valor en consola usamos <code>print(variable)</code>.
+    </div>
+
+    <!-- Guiado -->
+    <div class="sub-task">
+      <h3><span>Parte 1: Mostrar una variable de texto (Guiado)</span><span class="badge badge-guided">Guiado</span></h3>
+      <p style="margin-bottom:10px; font-size:0.9rem; color:var(--text-muted);">Instrucción: Guarda un texto en la variable <code>mi_texto</code> y muéstralo con <code>print(mi_texto)</code>.</p>
+      <div class="editor-grid">
+        <div class="editor-container">
+          <div class="editor-header"><span>Editor Python</span><button class="btn-reset" onclick="resetEditor(1, 'guided')">Restablecer</button></div>
+          <textarea id="code-1-guided" class="code-fallback"># Asigna un texto entre comillas a la variable
+mi_texto = "Hola Estudiante"
+
+# Usa print para mostrar la variable en la consola
+print(mi_texto)</textarea>
+        </div>
+        <div class="console-container">
+          <div class="console-header"><span>Consola de Salida</span><button class="btn-run" onclick="runCode(1, 'guided')">▶ Ejecutar</button></div>
+          <div class="console-output" id="out-1-guided">Haz clic en ▶ Ejecutar...</div>
+        </div>
+      </div>
+      <div class="feedback-msg" id="fb-1-guided"></div>
+    </div>
+
+    <!-- Autónomo -->
+    <div class="sub-task">
+      <h3><span>Parte 2: Mostrar una variable numérica (Autónomo)</span><span class="badge badge-auto">Autónomo</span></h3>
+      <p style="margin-bottom:10px; font-size:0.9rem; color:var(--text-muted);">Reto: Crea una variable llamada <code>edad</code>, asígnale un valor numérico (ejemplo: <code>12</code>) y muestra su valor con <code>print(edad)</code>.</p>
+      <div class="editor-grid">
+        <div class="editor-container">
+          <div class="editor-header"><span>Editor Python</span><button class="btn-reset" onclick="resetEditor(1, 'auto')">Restablecer</button></div>
+          <textarea id="code-1-auto" class="code-fallback"># Escribe tu código autónomo aquí:
+edad = 12
+print(edad)</textarea>
+        </div>
+        <div class="console-container">
+          <div class="console-header"><span>Consola de Salida</span><button class="btn-run" onclick="runCode(1, 'auto')">▶ Ejecutar</button></div>
+          <div class="console-output" id="out-1-auto">Escribe tu código y presiona Ejecutar...</div>
+        </div>
+      </div>
+      <div class="feedback-msg" id="fb-1-auto"></div>
+    </div>
+    <div class="nav-actions"><div></div><button class="btn-nav" id="btn-next-1" onclick="switchStep(2)" disabled>Siguiente Paso ▶</button></div>
+  </div>
+
+  <!-- SECCIÓN 2 -->
+  <div id="step-2" class="lesson-section">
+    <h2>Apartado 2: Leer datos de entrada con <code>input()</code></h2>
+    <div class="theory-box">
+      La función <code>input("Mensaje")</code> solicita un dato al usuario desplegando una ventana emergente en el navegador.
+    </div>
+
+    <!-- Guiado -->
+    <div class="sub-task">
+      <h3><span>Parte 1: Leer un nombre (Guiado)</span><span class="badge badge-guided">Guiado</span></h3>
+      <p style="margin-bottom:10px; font-size:0.9rem; color:var(--text-muted);">Ejecuta el código. El navegador abrirá un prompt de entrada para que escribas tu nombre.</p>
+      <div class="editor-grid">
+        <div class="editor-container">
+          <div class="editor-header"><span>Editor Python</span><button class="btn-reset" onclick="resetEditor(2, 'guided')">Restablecer</button></div>
+          <textarea id="code-2-guided" class="code-fallback">nombre_usuario = input("¿Cómo te llamas? ")
+print("Mucho gusto, " + nombre_usuario)</textarea>
+        </div>
+        <div class="console-container">
+          <div class="console-header"><span>Consola de Salida</span><button class="btn-run" onclick="runCode(2, 'guided')">▶ Ejecutar</button></div>
+          <div class="console-output" id="out-2-guided">Haz clic en ▶ Ejecutar...</div>
+        </div>
+      </div>
+      <div class="feedback-msg" id="fb-2-guided"></div>
+    </div>
+
+    <!-- Autónomo -->
+    <div class="sub-task">
+      <h3><span>Parte 2: Leer tu color favorito (Autónomo)</span><span class="badge badge-auto">Autónomo</span></h3>
+      <p style="margin-bottom:10px; font-size:0.9rem; color:var(--text-muted);">Reto: Pide el color favorito guardándolo en la variable <code>color</code> e imprime <code>print("Tu color favorito es " + color)</code>.</p>
+      <div class="editor-grid">
+        <div class="editor-container">
+          <div class="editor-header"><span>Editor Python</span><button class="btn-reset" onclick="resetEditor(2, 'auto')">Restablecer</button></div>
+          <textarea id="code-2-auto" class="code-fallback">color = input("¿Cuál es tu color favorito? ")
+print("Tu color favorito es " + color)</textarea>
+        </div>
+        <div class="console-container">
+          <div class="console-header"><span>Consola de Salida</span><button class="btn-run" onclick="runCode(2, 'auto')">▶ Ejecutar</button></div>
+          <div class="console-output" id="out-2-auto">Escribe tu código y presiona Ejecutar...</div>
+        </div>
+      </div>
+      <div class="feedback-msg" id="fb-2-auto"></div>
+    </div>
+    <div class="nav-actions"><button class="btn-nav" onclick="switchStep(1)">◀ Anterior</button><button class="btn-nav" id="btn-next-2" onclick="switchStep(3)" disabled>Siguiente Paso ▶</button></div>
+  </div>
+
+  <!-- SECCIÓN 3 -->
+  <div id="step-3" class="lesson-section">
+    <h2>Apartado 3: Tomas de Decisión con Condicionales (<code>if / else</code>)</h2>
+    <div class="theory-box">
+      Los condicionales evalúan comparaciones lógicas.<br>Ejemplo: <code>if numero > 10:</code>
+    </div>
+
+    <!-- Guiado -->
+    <div class="sub-task">
+      <h3><span>Parte 1: Valor fijo de 7 (Guiado)</span><span class="badge badge-guided">Guiado</span></h3>
+      <p style="margin-bottom:10px; font-size:0.9rem; color:var(--text-muted);">Asigna 7 a <code>numero</code> e imprime si es mayor o menor a 10.</p>
+      <div class="editor-grid">
+        <div class="editor-container">
+          <div class="editor-header"><span>Editor Python</span><button class="btn-reset" onclick="resetEditor(3, 'guided')">Restablecer</button></div>
+          <textarea id="code-3-guided" class="code-fallback">numero = 7
+
+if numero > 10:
+    print("Es mayor a 10")
+else:
+    print("Es menor o igual a 10")</textarea>
+        </div>
+        <div class="console-container">
+          <div class="console-header"><span>Consola de Salida</span><button class="btn-run" onclick="runCode(3, 'guided')">▶ Ejecutar</button></div>
+          <div class="console-output" id="out-3-guided">Haz clic en ▶ Ejecutar...</div>
+        </div>
+      </div>
+      <div class="feedback-msg" id="fb-3-guided"></div>
+    </div>
+
+    <!-- Autónomo -->
+    <div class="sub-task">
+      <h3><span>Parte 2: Condicional con entrada de usuario (Autónomo)</span><span class="badge badge-auto">Autónomo</span></h3>
+      <p style="margin-bottom:10px; font-size:0.9rem; color:var(--text-muted);">Reto: Pide un número con <code>int(input())</code> y evalúa si es mayor a 10 o menor.</p>
+      <div class="editor-grid">
+        <div class="editor-container">
+          <div class="editor-header"><span>Editor Python</span><button class="btn-reset" onclick="resetEditor(3, 'auto')">Restablecer</button></div>
+          <textarea id="code-3-auto" class="code-fallback">num_ingresado = int(input("Ingresa un número: "))
+
+if num_ingresado > 10:
+    print("Es mayor a 10")
+else:
+    print("Es menor o igual a 10")</textarea>
+        </div>
+        <div class="console-container">
+          <div class="console-header"><span>Consola de Salida</span><button class="btn-run" onclick="runCode(3, 'auto')">▶ Ejecutar</button></div>
+          <div class="console-output" id="out-3-auto">Escribe tu código y presiona Ejecutar...</div>
+        </div>
+      </div>
+      <div class="feedback-msg" id="fb-3-auto"></div>
+    </div>
+    <div class="nav-actions"><button class="btn-nav" onclick="switchStep(2)">◀ Anterior</button><button class="btn-nav" id="btn-next-3" onclick="switchStep(4)" disabled>Proyecto Final ▶</button></div>
+  </div>
+
+  <!-- SECCIÓN 4 -->
+  <div id="step-4" class="lesson-section">
+    <h2>Apartado 4: Desafío Final Integrador</h2>
+    <div class="theory-box">
+      Crea un programa completo integrando variables, entrada de datos y condicionales.
+    </div>
+
+    <div class="sub-task">
+      <h3><span>Proyecto Autónomo: Calculadora de Mayoría de Edad</span><span class="badge badge-auto">Autónomo</span></h3>
+      <p style="margin-bottom:10px; font-size:0.9rem; color:var(--text-muted);">
+        1. Solicita el nombre con <code>input()</code> en la variable <code>nombre</code>.<br>
+        2. Solicita el año de nacimiento en <code>anio_nacimiento</code> y conviértelo a entero con <code>int()</code>.<br>
+        3. Calcula la edad restando <code>2026 - anio_nacimiento</code>.<br>
+        4. Muestra exactamente: <code>Hola, XXX. Su edad es XX</code><br>
+        5. Con <code>if/else</code> muestra si <code>Es mayor de edad</code> o <code>Es menor de edad</code>.
+      </p>
+      <div class="editor-grid">
+        <div class="editor-container">
+          <div class="editor-header"><span>Editor Python</span><button class="btn-reset" onclick="resetEditor(4, 'project')">Restablecer</button></div>
+          <textarea id="code-4-project" class="code-fallback">nombre = input("Ingresa tu nombre: ")
+anio_nacimiento = int(input("Ingresa tu año de nacimiento: "))
+
+edad = 2026 - anio_nacimiento
+print("Hola, " + nombre + ". Su edad es " + str(edad))
+
+if edad >= 18:
+    print("Es mayor de edad")
+else:
+    print("Es menor de edad")</textarea>
+        </div>
+        <div class="console-container">
+          <div class="console-header"><span>Consola de Salida</span><button class="btn-run" onclick="runCode(4, 'project')">▶ Ejecutar & Validar</button></div>
+          <div class="console-output" id="out-4-project">Completa el código y presiona Ejecutar...</div>
+        </div>
+      </div>
+      <div class="feedback-msg" id="fb-4-project"></div>
+    </div>
+    <div class="nav-actions"><button class="btn-nav" onclick="switchStep(3)">◀ Anterior</button><button class="btn-nav" id="btn-finish" onclick="finishModule()" style="background:var(--success);" disabled>Finalizar Módulo 🎉</button></div>
+  </div>
+
+  <!-- RESULTADOS -->
+  <div id="step-5" class="lesson-section final-card">
+    <h2>🎉 ¡Felicitaciones! Módulo Completado</h2>
+    <div class="final-score" id="final-score-val">100 / 100</div>
+    <p id="summary-msg" style="color:var(--success); font-weight:bold;"></p>
+    <p style="margin-top:20px; font-size:0.85rem; color:var(--text-muted);">¡Excelente trabajo! Has completado todos los ejercicios prácticos de Python.</p>
+  </div>
+
+</div>
+
+<script>
+  // Progresión y puntaje
+  const progress = {
+    s1_guided: false, s1_auto: false,
+    s2_guided: false, s2_auto: false,
+    s3_guided: false, s3_auto: false,
+    s4_project: false
+  };
+
+  function calculateScore() {
+    let score = 0;
+    if (progress.s1_guided) score += 10;
+    if (progress.s1_auto) score += 15;
+    if (progress.s2_guided) score += 10;
+    if (progress.s2_auto) score += 15;
+    if (progress.s3_guided) score += 10;
+    if (progress.s3_auto) score += 15;
+    if (progress.s4_project) score += 25;
+    
+    document.getElementById('score-val').textContent = score;
+
+    if (progress.s1_guided && progress.s1_auto) {
+      document.getElementById('btn-next-1').disabled = false;
+      document.getElementById('nav-btn-1').classList.add('completed');
+    }
+    if (progress.s2_guided && progress.s2_auto) {
+      document.getElementById('btn-next-2').disabled = false;
+      document.getElementById('nav-btn-2').classList.add('completed');
+    }
+    if (progress.s3_guided && progress.s3_auto) {
+      document.getElementById('btn-next-3').disabled = false;
+      document.getElementById('nav-btn-3').classList.add('completed');
+    }
+    if (progress.s4_project) {
+      document.getElementById('btn-finish').disabled = false;
+      document.getElementById('nav-btn-4').classList.add('completed');
+    }
+
+    return score;
+  }
+
+  // Mapa de editores CodeMirror con fallback a textarea nativo
+  const editors = {};
+
+  function initEditors() {
+    const ids = [
+      'code-1-guided', 'code-1-auto',
+      'code-2-guided', 'code-2-auto',
+      'code-3-guided', 'code-3-auto',
+      'code-4-project'
+    ];
+    ids.forEach(id => {
+      const el = document.getElementById(id);
+      if (el) {
+        if (typeof CodeMirror !== 'undefined') {
+          try {
+            editors[id] = CodeMirror.fromTextArea(el, {
+              mode: 'python',
+              theme: 'dracula',
+              lineNumbers: true,
+              indentUnit: 4,
+              viewportMargin: Infinity
+            });
+          } catch(e) {
+            console.warn("CodeMirror fallback warning:", e);
+          }
+        }
+      }
+    });
+  }
+
+  function getCodeValue(id) {
+    if (editors[id] && typeof editors[id].getValue === 'function') {
+      return editors[id].getValue();
+    }
+    const el = document.getElementById(id);
+    return el ? el.value : "";
+  }
+
+  function setCodeValue(id, val) {
+    if (editors[id] && typeof editors[id].setValue === 'function') {
+      editors[id].setValue(val);
+    } else {
+      const el = document.getElementById(id);
+      if (el) el.value = val;
+    }
+  }
+
+  function switchStep(stepNum) {
+    document.querySelectorAll('.lesson-section').forEach(el => el.classList.remove('active'));
+    document.querySelectorAll('.step-btn').forEach(el => el.classList.remove('active'));
+    document.getElementById(`step-${stepNum}`).classList.add('active');
+    const navBtn = document.getElementById(`nav-btn-${stepNum}`);
+    if (navBtn) navBtn.classList.add('active');
+    setTimeout(() => {
+      for (let key in editors) {
+        if (editors[key] && editors[key].refresh) editors[key].refresh();
+      }
+    }, 100);
+  }
+
+  function resetEditor(step, type) {
+    const key = `code-${step}-${type}`;
+    const el = document.getElementById(key);
+    if (el) {
+      setCodeValue(key, el.defaultValue);
+    }
+  }
+
+  // Función principal de ejecución de Python con Skulpt
+  function runCode(step, type) {
+    const key = `code-${step}-${type}`;
+    const outEl = document.getElementById(`out-${step}-${type}`);
+    const fbEl = document.getElementById(`fb-${step}-${type}`);
+
+    if (!outEl) return;
+    outEl.innerText = "Ejecutando...";
+    if (fbEl) fbEl.style.display = 'none';
+
+    const code = getCodeValue(key);
+
+    if (typeof Sk === 'undefined') {
+      outEl.innerText = "Error: El intérprete Skulpt no se ha cargado. Verifica la conexión a internet.";
+      if (fbEl) {
+        fbEl.className = 'feedback-msg error';
+        fbEl.style.display = 'block';
+        fbEl.innerText = "No se pudo cargar el motor de ejecución.";
+      }
+      return;
+    }
+
+    function builtinRead(x) {
+      if (Sk.builtinFiles === undefined || Sk.builtinFiles["files"][x] === undefined)
+        throw "Archivo no encontrado: '" + x + "'";
+      return Sk.builtinFiles["files"][x];
+    }
+
+    try {
+      Sk.configure({
+        output: function(text) {
+          if (outEl.innerText === "Ejecutando...") outEl.innerText = "";
+          outEl.innerText += text;
+        },
+        read: builtinRead,
+        inputfun: function(promptText) {
+          return new Promise(function(resolve) {
+            let val = window.prompt(promptText || "Ingresa un valor de entrada para Python:");
+            resolve(val !== null ? val : "");
+          });
+        },
+        inputfunTakesPrompt: true
+      });
+
+      const promise = Sk.importMainWithBody("<stdin>", false, code, true);
+
+      promise.then(function(module) {
+        if (outEl.innerText === "Ejecutando...") {
+          outEl.innerText = "(Programa ejecutado sin salida print)";
+        }
+        validateSubmission(step, type, code, outEl.innerText, fbEl);
+      }, function(err) {
+        outEl.innerText = "Error de ejecución en Python:
+" + err.toString();
+        if (fbEl) {
+          fbEl.className = 'feedback-msg error';
+          fbEl.style.display = 'block';
+          fbEl.innerText = "Revisa tu código, ocurrió un error de sintaxis o de ejecución.";
+        }
+      });
+    } catch(e) {
+      outEl.innerText = "Error inesperado al ejecutar: " + e.toString();
+    }
+  }
+
+  function validateSubmission(step, type, code, output, fbEl) {
+    if (!fbEl) return;
+    fbEl.style.display = 'block';
+    let isOk = false;
+    let msg = "";
+    const outTrim = output.trim();
+    const codeClean = code.toLowerCase();
+
+    if (step === 1 && type === 'guided') {
+      if (outTrim.length > 0 && outTrim !== "(Programa ejecutado sin salida print)" && codeClean.includes('print')) {
+        isOk = true; msg = "¡Excelente! Has almacenado el texto e impreso su valor en consola. (+10 pts)"; progress.s1_guided = true;
+      } else { msg = "Recuerda asignar un texto entre comillas y usar print() para mostrarlo."; }
+    } else if (step === 1 && type === 'auto') {
+      const hasNumberInOutput = /\d+/.test(outTrim);
+      const hasVar = /\w+\s*=\s*\d+/.test(codeClean);
+      if (hasVar && hasNumberInOutput && codeClean.includes('print')) {
+        isOk = true; msg = "¡Bien hecho! Creaste una variable numérica e imprimiste su valor. (+15 pts)"; progress.s1_auto = true;
+      } else { msg = "Debes declarar una variable con un valor numérico (ej: edad = 12) e imprimirla con print(edad)."; }
+    } else if (step === 2 && type === 'guided') {
+      if (codeClean.includes('input') && codeClean.includes('print') && outTrim.length > 0) {
+        isOk = true; msg = "¡Excelente! Comprendiste cómo solicitar un dato con input() y mostrarlo. (+10 pts)"; progress.s2_guided = true;
+      } else { msg = "Asegúrate de ejecutar la instrucción input() y mostrar la variable resultante con print()."; }
+    } else if (step === 2 && type === 'auto') {
+      if (codeClean.includes('input') && codeClean.includes('print') && outTrim.length > 0) {
+        isOk = true; msg = "¡Genial! Leíste el color favorito del usuario de forma autónoma. (+15 pts)"; progress.s2_auto = true;
+      } else { msg = "Usa input() para guardar el color en una variable y luego imprime el resultado con print()."; }
+    } else if (step === 3 && type === 'guided') {
+      if (codeClean.includes('if') && codeClean.includes('else') && (outTrim.includes('menor') || outTrim.includes('mayor'))) {
+        isOk = true; msg = "¡Correcto! Evaluaste la variable fija 7 adecuadamente con if/else. (+10 pts)"; progress.s3_guided = true;
+      } else { msg = "Verifica que el código mantenga la estructura if / else probando el valor 7."; }
+    } else if (step === 3 && type === 'auto') {
+      if (codeClean.includes('input') && codeClean.includes('if') && codeClean.includes('else')) {
+        isOk = true; msg = "¡Muy bien! Lograste combinar la lectura de datos con un condicional if/else. (+15 pts)"; progress.s3_auto = true;
+      } else { msg = "Debes pedir un número con input(), convertirlo a int() y luego usar if/else para compararlo con 10."; }
+    } else if (step === 4 && type === 'project') {
+      const hasInputName = codeClean.includes('input');
+      const hasIf = codeClean.includes('if') && codeClean.includes('else');
+      const hasHola = outTrim.toLowerCase().includes('hola');
+      const hasEdad = outTrim.toLowerCase().includes('edad');
+      const hasStatus = outTrim.toLowerCase().includes('mayor') || outTrim.toLowerCase().includes('menor');
+
+      if (hasInputName && hasIf && hasHola && hasEdad && hasStatus) {
+        isOk = true; msg = "¡PROYECTO INTEGRADOR COMPLETADO! Has creado con éxito la solución autónoma completa. (+25 pts)"; progress.s4_project = true;
+      } else {
+        msg = "Revisa los requisitos: Debe pedir nombre, año de nacimiento, imprimir 'Hola, XXX. Su edad es XX' y la evaluación condicional.";
+      }
+    }
+
+    if (isOk) {
+      fbEl.className = 'feedback-msg success';
+      fbEl.innerText = msg;
+    } else {
+      fbEl.className = 'feedback-msg error';
+      fbEl.innerText = msg;
+    }
+
+    calculateScore();
+  }
+
+  function finishModule() {
+    const finalScore = calculateScore();
+    document.querySelectorAll('.lesson-section').forEach(el => el.classList.remove('active'));
+    document.getElementById('step-5').classList.add('active');
+    document.getElementById('final-score-val').textContent = `${finalScore} / 100`;
+    document.getElementById('summary-msg').textContent = finalScore >= 70 ? 
+      "¡Felicidades! Aprobaste satisfactoriamente el taller interactivo de Python." :
+      "Módulo finalizado. Puedes volver a intentar las actividades para subir tu puntaje.";
+  }
+
+  window.onload = function() {
+    initEditors();
+  };
+</script>
+</body>
+</html>
