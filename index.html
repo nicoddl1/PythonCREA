@@ -1,0 +1,788 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Taller Interactivo de Python - Fundamentos</title>
+  <style>
+    :root {
+      --bg-dark: #0f172a;
+      --card-bg: #1e293b;
+      --accent: #38bdf8;
+      --primary: #6366f1;
+      --success: #10b981;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; }
+    body { background-color: var(--bg-dark); color: var(--text); padding: 20px; min-height: 100vh; }
+    
+    .app-container { max-width: 1000px; margin: 0 auto; }
+    
+    header {
+      background: var(--card-bg);
+      padding: 20px 25px;
+      border-radius: 12px;
+      margin-bottom: 20px;
+      border: 1px solid #334155;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 15px;
+    }
+    
+    .title-area h1 { font-size: 1.5rem; color: var(--accent); margin-bottom: 4px; }
+    .title-area p { font-size: 0.9rem; color: var(--text-muted); }
+    
+    .score-badge {
+      background: #090d16;
+      padding: 10px 18px;
+      border-radius: 8px;
+      font-size: 1.05rem;
+      font-weight: bold;
+      border: 1px solid #334155;
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .steps-nav { display: flex; gap: 10px; margin-bottom: 20px; overflow-x: auto; padding-bottom: 5px; }
+    .step-btn { flex: 1; min-width: 140px; background: var(--card-bg); border: 1px solid #334155; color: var(--text-muted); padding: 12px 15px; border-radius: 8px; cursor: pointer; text-align: center; font-weight: 600; transition: all 0.2s ease; }
+    .step-btn:hover { background: #334155; color: white; }
+    .step-btn.active { background: var(--primary); color: white; border-color: var(--primary); }
+    .step-btn.completed { border-color: var(--success); }
+
+    .lesson-section { display: none; background: var(--card-bg); border-radius: 12px; padding: 25px; border: 1px solid #334155; margin-bottom: 20px; }
+    .lesson-section.active { display: block; animation: fadeIn 0.3s ease; }
+
+    h2 { font-size: 1.3rem; color: #a7f3d0; margin-bottom: 12px; }
+    .theory-box { background: #090d16; border-left: 4px solid var(--accent); padding: 15px; border-radius: 6px; margin-bottom: 20px; line-height: 1.6; font-size: 0.95rem; }
+    .theory-box code { background: #334155; padding: 2px 6px; border-radius: 4px; color: #38bdf8; font-family: monospace; }
+
+    .sub-task { background: #182232; border: 1px solid #334155; border-radius: 8px; padding: 18px; margin-bottom: 20px; }
+    .sub-task h3 { font-size: 1.05rem; color: var(--accent); margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
+    .badge { font-size: 0.75rem; padding: 4px 10px; border-radius: 4px; text-transform: uppercase; font-weight: bold; }
+    .badge-guided { background: #3b82f6; color: white; }
+    .badge-auto { background: #8b5cf6; color: white; }
+
+    .editor-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 15px; }
+    @media (max-width: 768px) { .editor-grid { grid-template-columns: 1fr; } }
+
+    .editor-container, .console-container { display: flex; flex-direction: column; border: 1px solid #334155; border-radius: 8px; overflow: hidden; }
+    .editor-header, .console-header { background: #0f172a; padding: 10px 14px; font-size: 0.85rem; font-weight: bold; color: var(--text-muted); display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #334155; }
+
+    textarea.code-editor {
+      height: 190px; width: 100%; background: #1e1e2e; color: #a6e3a1;
+      font-family: 'Fira Code', 'Consolas', 'Courier New', monospace; font-size: 14px;
+      line-height: 1.5; padding: 12px; border: none; outline: none; resize: vertical;
+    }
+
+    .console-output { background: #050811; color: #38bdf8; font-family: 'Consolas', 'Courier New', monospace; padding: 12px; height: 190px; overflow-y: auto; white-space: pre-wrap; font-size: 0.9rem; line-height: 1.4; }
+
+    .btn-run { background: var(--success); color: white; border: none; padding: 8px 18px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 0.9rem; transition: transform 0.1s, opacity 0.2s; }
+    .btn-run:hover { opacity: 0.9; }
+    .btn-run:active { transform: scale(0.96); }
+    .btn-reset { background: #475569; color: white; border: none; padding: 4px 10px; border-radius: 4px; cursor: pointer; font-size: 0.8rem; }
+
+    .feedback-msg { margin-top: 12px; padding: 12px; border-radius: 6px; font-size: 0.9rem; font-weight: 600; display: none; }
+    .feedback-msg.success { background: #065f46; color: #a7f3d0; border: 1px solid #10b981; }
+    .feedback-msg.error { background: #7f1d1d; color: #fecaca; border: 1px solid #ef4444; }
+
+    .nav-actions { display: flex; justify-content: space-between; margin-top: 20px; }
+    .btn-nav { background: var(--primary); color: white; border: none; padding: 10px 20px; border-radius: 8px; font-weight: bold; cursor: pointer; }
+    .btn-nav:disabled { background: #475569; cursor: not-allowed; }
+
+    .final-card { text-align: center; padding: 40px 20px; }
+    .final-score { font-size: 3.5rem; color: var(--accent); font-weight: bold; margin: 15px 0; }
+
+    /* Modal emergente para input() */
+    .input-modal { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); z-index: 99999; justify-content: center; align-items: center; }
+    .input-modal.active { display: flex; }
+    .input-modal-content { background: var(--card-bg); border: 2px solid var(--accent); padding: 25px; border-radius: 12px; width: 90%; max-width: 420px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
+    .input-modal-content label { display: block; margin-bottom: 12px; color: #38bdf8; font-weight: bold; font-size: 1.05rem; }
+    .input-modal-content input { width: 100%; padding: 12px; margin-bottom: 18px; border-radius: 6px; border: 1px solid #475569; background: #0f172a; color: white; font-size: 1rem; outline: none; }
+    .input-modal-content button { background: var(--success); color: white; border: none; padding: 10px 24px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 1rem; width: 100%; }
+
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+  </style>
+</head>
+<body>
+
+<!-- Ventana emergente integrada para entrada de datos input() -->
+<div id="custom-input-modal" class="input-modal">
+  <div class="input-modal-content">
+    <label id="modal-prompt-label">Ingresa un valor:</label>
+    <input type="text" id="modal-input-field" placeholder="Escribe aquí..." autocomplete="off">
+    <button id="modal-submit-btn" onclick="submitModalInput()">Enviar a la consola</button>
+  </div>
+</div>
+
+<div class="app-container">
+  <header>
+    <div class="title-area">
+      <h1>🐍 Taller Interactivo de Python</h1>
+      <p>Aprende variables, entrada de datos y estructuras condicionales</p>
+    </div>
+    <div class="score-badge">
+      <span>Puntaje: <strong id="score-val" style="color:var(--accent);">0</strong> / 100</span>
+    </div>
+  </header>
+
+  <!-- Pestañas de navegación -->
+  <div class="steps-nav">
+    <button class="step-btn active" id="nav-btn-1" onclick="switchStep(1)">1. Variables & Print</button>
+    <button class="step-btn" id="nav-btn-2" onclick="switchStep(2)">2. Lectura (input)</button>
+    <button class="step-btn" id="nav-btn-3" onclick="switchStep(3)">3. Condicionales</button>
+    <button class="step-btn" id="nav-btn-4" onclick="switchStep(4)">4. Proyecto Final</button>
+  </div>
+
+  <!-- SECCIÓN 1 -->
+  <div id="step-1" class="lesson-section active">
+    <h2>Apartado 1: Variables y la instrucción <code>print()</code></h2>
+    <div class="theory-box">
+      Una <strong>variable</strong> almacena datos. En Python asignamos un valor con <code>=</code>.<br>
+      Los textos van entre comillas (<code>"Hola"</code>) y los números van sin comillas (<code>12</code>). Para mostrar el valor en consola usamos <code>print(variable)</code>.
+    </div>
+
+    <!-- Guiado -->
+    <div class="sub-task">
+      <h3><span>Parte 1: Mostrar una variable de texto (Guiado)</span><span class="badge badge-guided">Guiado</span></h3>
+      <p style="margin-bottom:10px; font-size:0.9rem; color:var(--text-muted);">Instrucción: Observa cómo se guarda un texto en la variable <code>mi_texto</code> y se muestra con <code>print(mi_texto)</code>. Presiona Ejecutar.</p>
+      <div class="editor-grid">
+        <div class="editor-container">
+          <div class="editor-header"><span>Editor Python</span><button class="btn-reset" onclick="resetEditor('code-1-guided')">Restablecer</button></div>
+          <textarea id="code-1-guided" class="code-editor" spellcheck="false"># Asigna un texto entre comillas a la variable
+mi_texto = "Hola Estudiante"
+
+# Usa print para mostrar la variable
+print(mi_texto)</textarea>
+        </div>
+        <div class="console-container">
+          <div class="console-header"><span>Consola de Salida</span><button class="btn-run" onclick="runCode(1, 'guided')">▶ Ejecutar</button></div>
+          <div class="console-output" id="out-1-guided">Haz clic en ▶ Ejecutar...</div>
+        </div>
+      </div>
+      <div class="feedback-msg" id="fb-1-guided"></div>
+    </div>
+
+    <!-- Autónomo -->
+    <div class="sub-task">
+      <h3><span>Parte 2: Mostrar una variable numérica (Autónomo)</span><span class="badge badge-auto">Autónomo</span></h3>
+      <p style="margin-bottom:10px; font-size:0.9rem; color:var(--text-muted);">Reto: Crea una variable llamada <code>edad</code>, asígnale un valor numérico (ejemplo: <code>12</code>) y muestra su valor con <code>print(edad)</code>.</p>
+      <div class="editor-grid">
+        <div class="editor-container">
+          <div class="editor-header"><span>Editor Python</span><button class="btn-reset" onclick="resetEditor('code-1-auto')">Restablecer</button></div>
+          <textarea id="code-1-auto" class="code-editor" spellcheck="false"># Pista 1: Crea la variable edad y asígnale un número (sin comillas)
+# Pista 2: Usa print(edad) para mostrar su valor en consola
+
+</textarea>
+        </div>
+        <div class="console-container">
+          <div class="console-header"><span>Consola de Salida</span><button class="btn-run" onclick="runCode(1, 'auto')">▶ Ejecutar</button></div>
+          <div class="console-output" id="out-1-auto">Escribe tu código y presiona Ejecutar...</div>
+        </div>
+      </div>
+      <div class="feedback-msg" id="fb-1-auto"></div>
+    </div>
+    <div class="nav-actions"><div></div><button class="btn-nav" id="btn-next-1" onclick="switchStep(2)" disabled>Siguiente Paso ▶</button></div>
+  </div>
+
+  <!-- SECCIÓN 2 -->
+  <div id="step-2" class="lesson-section">
+    <h2>Apartado 2: Leer datos de entrada con <code>input()</code></h2>
+    <div class="theory-box">
+      La función <code>input("Mensaje")</code> solicita un dato al usuario y lo guarda como texto en una variable.<br>
+      Puedes unir textos usando el símbolo <code>+</code> dentro de <code>print()</code>.
+    </div>
+
+    <!-- Guiado -->
+    <div class="sub-task">
+      <h3><span>Parte 1: Leer un nombre (Guiado)</span><span class="badge badge-guided">Guiado</span></h3>
+      <p style="margin-bottom:10px; font-size:0.9rem; color:var(--text-muted);">Ejecuta el código. Aparecerá una ventana para ingresar tu nombre y luego lo saludará.</p>
+      <div class="editor-grid">
+        <div class="editor-container">
+          <div class="editor-header"><span>Editor Python</span><button class="btn-reset" onclick="resetEditor('code-2-guided')">Restablecer</button></div>
+          <textarea id="code-2-guided" class="code-editor" spellcheck="false">nombre_usuario = input("¿Cómo te llamas?")
+print("Mucho gusto, " + nombre_usuario)</textarea>
+        </div>
+        <div class="console-container">
+          <div class="console-header"><span>Consola de Salida</span><button class="btn-run" onclick="runCode(2, 'guided')">▶ Ejecutar</button></div>
+          <div class="console-output" id="out-2-guided">Haz clic en ▶ Ejecutar...</div>
+        </div>
+      </div>
+      <div class="feedback-msg" id="fb-2-guided"></div>
+    </div>
+
+    <!-- Autónomo -->
+    <div class="sub-task">
+      <h3><span>Parte 2: Leer tu color favorito (Autónomo)</span><span class="badge badge-auto">Autónomo</span></h3>
+      <p style="margin-bottom:10px; font-size:0.9rem; color:var(--text-muted);">Reto: Pide el color favorito guardándolo en la variable <code>color</code> e imprime el mensaje <code>Tu color favorito es ...</code>.</p>
+      <div class="editor-grid">
+        <div class="editor-container">
+          <div class="editor-header"><span>Editor Python</span><button class="btn-reset" onclick="resetEditor('code-2-auto')">Restablecer</button></div>
+          <textarea id="code-2-auto" class="code-editor" spellcheck="false"># Pista 1: Usa color = input("¿Cuál es tu color favorito?")
+# Pista 2: Usa print("Tu color favorito es " + color)
+
+</textarea>
+        </div>
+        <div class="console-container">
+          <div class="console-header"><span>Consola de Salida</span><button class="btn-run" onclick="runCode(2, 'auto')">▶ Ejecutar</button></div>
+          <div class="console-output" id="out-2-auto">Escribe tu código y presiona Ejecutar...</div>
+        </div>
+      </div>
+      <div class="feedback-msg" id="fb-2-auto"></div>
+    </div>
+    <div class="nav-actions"><button class="btn-nav" onclick="switchStep(1)">◀ Anterior</button><button class="btn-nav" id="btn-next-2" onclick="switchStep(3)" disabled>Siguiente Paso ▶</button></div>
+  </div>
+
+  <!-- SECCIÓN 3 -->
+  <div id="step-3" class="lesson-section">
+    <h2>Apartado 3: Tomas de Decisión con Condicionales (<code>if / else</code>)</h2>
+    <div class="theory-box">
+      Los condicionales evalúan comparaciones lógicas (como <code>&gt;</code>, <code>&lt;</code>, <code>&gt;=</code>, <code>==</code>).<br>
+      Recuerda colocar dos puntos <code>:</code> al final de <code>if</code> y <code>else</code>, y dejar 4 espacios de sangría en las líneas internas.
+    </div>
+
+    <!-- Guiado -->
+    <div class="sub-task">
+      <h3><span>Parte 1: Valor fijo de 7 (Guiado)</span><span class="badge badge-guided">Guiado</span></h3>
+      <p style="margin-bottom:10px; font-size:0.9rem; color:var(--text-muted);">Observa cómo se evalúa si <code>numero</code> (que vale 7) es mayor o menor/igual a 10.</p>
+      <div class="editor-grid">
+        <div class="editor-container">
+          <div class="editor-header"><span>Editor Python</span><button class="btn-reset" onclick="resetEditor('code-3-guided')">Restablecer</button></div>
+          <textarea id="code-3-guided" class="code-editor" spellcheck="false">numero = 7
+
+if numero > 10:
+    print("Es mayor a 10")
+else:
+    print("Es menor o igual a 10")</textarea>
+        </div>
+        <div class="console-container">
+          <div class="console-header"><span>Consola de Salida</span><button class="btn-run" onclick="runCode(3, 'guided')">▶ Ejecutar</button></div>
+          <div class="console-output" id="out-3-guided">Haz clic en ▶ Ejecutar...</div>
+        </div>
+      </div>
+      <div class="feedback-msg" id="fb-3-guided"></div>
+    </div>
+
+    <!-- Autónomo -->
+    <div class="sub-task">
+      <h3><span>Parte 2: Condicional con entrada de usuario (Autónomo)</span><span class="badge badge-auto">Autónomo</span></h3>
+      <p style="margin-bottom:10px; font-size:0.9rem; color:var(--text-muted);">Reto: Pide un número al usuario usando <code>int(input())</code> y evalúa con <code>if / else</code> si es mayor a 10 o menor/igual a 10.</p>
+      <div class="editor-grid">
+        <div class="editor-container">
+          <div class="editor-header"><span>Editor Python</span><button class="btn-reset" onclick="resetEditor('code-3-auto')">Restablecer</button></div>
+          <textarea id="code-3-auto" class="code-editor" spellcheck="false"># Pista 1: Convierte la entrada a número con num = int(input("Ingresa un número:"))
+# Pista 2: Escribe if num > 10: y debajo (con 4 espacios) print("Es mayor a 10")
+# Pista 3: Escribe else: y debajo (con 4 espacios) print("Es menor o igual a 10")
+
+</textarea>
+        </div>
+        <div class="console-container">
+          <div class="console-header"><span>Consola de Salida</span><button class="btn-run" onclick="runCode(3, 'auto')">▶ Ejecutar</button></div>
+          <div class="console-output" id="out-3-auto">Escribe tu código y presiona Ejecutar...</div>
+        </div>
+      </div>
+      <div class="feedback-msg" id="fb-3-auto"></div>
+    </div>
+    <div class="nav-actions"><button class="btn-nav" onclick="switchStep(2)">◀ Anterior</button><button class="btn-nav" id="btn-next-3" onclick="switchStep(4)" disabled>Proyecto Final ▶</button></div>
+  </div>
+
+  <!-- SECCIÓN 4 -->
+  <div id="step-4" class="lesson-section">
+    <h2>Apartado 4: Desafío Final Integrador</h2>
+    <div class="theory-box">
+      Crea un programa completo integrando variables, lectura de datos, operaciones matemáticas y condicionales.
+    </div>
+
+    <div class="sub-task">
+      <h3><span>Proyecto Autónomo: Calculadora de Mayoría de Edad</span><span class="badge badge-auto">Autónomo</span></h3>
+      <p style="margin-bottom:10px; font-size:0.9rem; color:var(--text-muted);">
+        1. Solicita el nombre con <code>input()</code> en la variable <code>nombre</code>.<br>
+        2. Solicita el año de nacimiento en <code>anio_nacimiento</code> y conviértelo a entero con <code>int()</code>.<br>
+        3. Calcula la edad restando <code>2026 - anio_nacimiento</code>.<br>
+        4. Muestra: <code>Hola, XXX. Su edad es XX</code> (usa <code>str(edad)</code> si concatenas con <code>+</code>).<br>
+        5. Con <code>if / else</code> evalúa si <code>edad &gt;= 18</code> para mostrar si <code>Es mayor de edad</code> o <code>Es menor de edad</code>.
+      </p>
+      <div class="editor-grid">
+        <div class="editor-container">
+          <div class="editor-header"><span>Editor Python</span><button class="btn-reset" onclick="resetEditor('code-4-project')">Restablecer</button></div>
+          <textarea id="code-4-project" class="code-editor" spellcheck="false"># Pista 1: Pide el nombre -> nombre = input("Ingresa tu nombre:")
+# Pista 2: Pide el año -> anio_nacimiento = int(input("Ingresa tu año de nacimiento:"))
+# Pista 3: Calcula -> edad = 2026 - anio_nacimiento
+# Pista 4: Imprime -> print("Hola, " + nombre + ". Su edad es " + str(edad))
+# Pista 5: Evalúa con if edad >= 18: y else: si es mayor o menor de edad
+
+</textarea>
+        </div>
+        <div class="console-container">
+          <div class="console-header"><span>Consola de Salida</span><button class="btn-run" onclick="runCode(4, 'project')">▶ Ejecutar & Validar</button></div>
+          <div class="console-output" id="out-4-project">Completa el código y presiona Ejecutar...</div>
+        </div>
+      </div>
+      <div class="feedback-msg" id="fb-4-project"></div>
+    </div>
+    <div class="nav-actions"><button class="btn-nav" onclick="switchStep(3)">◀ Anterior</button><button class="btn-nav" id="btn-finish" onclick="finishModule()" style="background:var(--success);" disabled>Finalizar Módulo 🎉</button></div>
+  </div>
+
+  <!-- RESULTADOS -->
+  <div id="step-5" class="lesson-section final-card">
+    <h2>🎉 ¡Felicitaciones! Módulo Completado</h2>
+    <div class="final-score" id="final-score-val">100 / 100</div>
+    <p id="summary-msg" style="color:var(--success); font-weight:bold;"></p>
+    <p style="margin-top:20px; font-size:0.85rem; color:var(--text-muted);">¡Excelente trabajo! Has completado todos los ejercicios prácticos de Python.</p>
+  </div>
+
+</div>
+
+<script>
+  // ---- PROGRESIÓN DE PUNTAJES ----
+  const progress = {
+    s1_guided: false, s1_auto: false,
+    s2_guided: false, s2_auto: false,
+    s3_guided: false, s3_auto: false,
+    s4_project: false
+  };
+
+  function calculateScore() {
+    let score = 0;
+    if (progress.s1_guided) score += 10;
+    if (progress.s1_auto) score += 15;
+    if (progress.s2_guided) score += 10;
+    if (progress.s2_auto) score += 15;
+    if (progress.s3_guided) score += 10;
+    if (progress.s3_auto) score += 15;
+    if (progress.s4_project) score += 25;
+    
+    document.getElementById('score-val').textContent = score;
+
+    if (progress.s1_guided && progress.s1_auto) {
+      document.getElementById('btn-next-1').disabled = false;
+      document.getElementById('nav-btn-1').classList.add('completed');
+    }
+    if (progress.s2_guided && progress.s2_auto) {
+      document.getElementById('btn-next-2').disabled = false;
+      document.getElementById('nav-btn-2').classList.add('completed');
+    }
+    if (progress.s3_guided && progress.s3_auto) {
+      document.getElementById('btn-next-3').disabled = false;
+      document.getElementById('nav-btn-3').classList.add('completed');
+    }
+    if (progress.s4_project) {
+      document.getElementById('btn-finish').disabled = false;
+      document.getElementById('nav-btn-4').classList.add('completed');
+    }
+
+    return score;
+  }
+
+  function switchStep(stepNum) {
+    document.querySelectorAll('.lesson-section').forEach(el => el.classList.remove('active'));
+    document.querySelectorAll('.step-btn').forEach(el => el.classList.remove('active'));
+    document.getElementById(`step-${stepNum}`).classList.add('active');
+    const navBtn = document.getElementById(`nav-btn-${stepNum}`);
+    if (navBtn) navBtn.classList.add('active');
+  }
+
+  function resetEditor(editorId) {
+    const el = document.getElementById(editorId);
+    if (el) el.value = el.defaultValue;
+  }
+
+  // ---- MODAL DE ENTRADA PARA input() ----
+  let pendingInputCallback = null;
+  function askInput(promptText, callback) {
+    const modal = document.getElementById('custom-input-modal');
+    document.getElementById('modal-prompt-label').textContent = promptText || "Ingresa un valor:";
+    const input = document.getElementById('modal-input-field');
+    input.value = "";
+    modal.classList.add('active');
+    input.focus();
+    pendingInputCallback = function(val) {
+      modal.classList.remove('active');
+      callback(val);
+    };
+  }
+
+  function submitModalInput() {
+    if (pendingInputCallback) {
+      const cb = pendingInputCallback;
+      pendingInputCallback = null;
+      cb(document.getElementById('modal-input-field').value);
+    }
+  }
+
+  document.getElementById('modal-input-field').addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') submitModalInput();
+  });
+
+  // ---- INTÉRPRETE DE PYTHON SEGURO EN JAVASCRIPT PURO ----
+  function stripInlineComment(line) {
+    let inQuotes = false;
+    let quoteChar = '';
+    for (let i = 0; i < line.length; i++) {
+      const c = line[i];
+      if (c === '"' || c === "'") {
+        if (!inQuotes) { inQuotes = true; quoteChar = c; }
+        else if (c === quoteChar) { inQuotes = false; }
+      }
+      if (c === '#' && !inQuotes) {
+        return line.slice(0, i);
+      }
+    }
+    return line;
+  }
+
+  function splitTopLevel(str, char) {
+    const parts = [];
+    let current = '';
+    let inQuotes = false;
+    let quoteChar = '';
+    let parenDepth = 0;
+
+    for (let i = 0; i < str.length; i++) {
+      const c = str[i];
+      if (c === '"' || c === "'") {
+        if (!inQuotes) {
+          inQuotes = true;
+          quoteChar = c;
+        } else if (c === quoteChar) {
+          inQuotes = false;
+        }
+      }
+      if (!inQuotes) {
+        if (c === '(') parenDepth++;
+        if (c === ')') parenDepth--;
+      }
+      if (c === char && !inQuotes && parenDepth === 0) {
+        parts.push(current);
+        current = '';
+      } else {
+        current += c;
+      }
+    }
+    parts.push(current);
+    return parts;
+  }
+
+  function evalExpr(exprStr, scope) {
+    if (exprStr === undefined || exprStr === null) return "";
+    let s = exprStr.trim();
+    if (s === "") return "";
+
+    // Soporte básico para f-strings: f"Hola, {nombre}"
+    if ((s.startsWith('f"') && s.endsWith('"')) || (s.startsWith("f'") && s.endsWith("'"))) {
+      let content = s.slice(2, -1);
+      return content.replace(/\{([^}]+)\}/g, function(_, innerExpr) {
+        return evalExpr(innerExpr, scope);
+      });
+    }
+
+    // Funciones de conversión str(), int(), float()
+    if (s.startsWith('str(') && s.endsWith(')')) {
+      return String(evalExpr(s.slice(4, -1), scope));
+    }
+    if (s.startsWith('int(') && s.endsWith(')')) {
+      return parseInt(evalExpr(s.slice(4, -1), scope), 10) || 0;
+    }
+    if (s.startsWith('float(') && s.endsWith(')')) {
+      return parseFloat(evalExpr(s.slice(6, -1), scope)) || 0;
+    }
+
+    // Suma o concatenación (+)
+    const plusParts = splitTopLevel(s, '+');
+    if (plusParts.length > 1) {
+      const results = plusParts.map(p => evalExpr(p, scope));
+      const hasString = results.some(r => typeof r === 'string');
+      if (hasString) {
+        return results.join('');
+      } else {
+        return results.reduce((a, b) => Number(a) + Number(b), 0);
+      }
+    }
+
+    // Resta (-)
+    const minusParts = splitTopLevel(s, '-');
+    if (minusParts.length === 2 && minusParts[0].trim() !== '') {
+      return Number(evalExpr(minusParts[0], scope)) - Number(evalExpr(minusParts[1], scope));
+    }
+
+    // Multiplicación (*)
+    const multParts = splitTopLevel(s, '*');
+    if (multParts.length > 1) {
+      return multParts.map(p => Number(evalExpr(p, scope))).reduce((a, b) => a * b, 1);
+    }
+
+    // Cadena de texto entre comillas
+    if ((s.startsWith('"') && s.endsWith('"')) || (s.startsWith("'") && s.endsWith("'"))) {
+      return s.slice(1, -1);
+    }
+
+    // Número literal
+    if (!isNaN(s) && s !== '') {
+      return Number(s);
+    }
+
+    // Variable almacenada
+    if (scope.hasOwnProperty(s)) {
+      return scope[s];
+    }
+
+    return s;
+  }
+
+  function evalCondition(condStr, scope) {
+    const s = condStr.trim();
+    const ops = ['>=', '<=', '==', '!=', '>', '<'];
+    for (let op of ops) {
+      if (s.includes(op)) {
+        const parts = s.split(op);
+        const left = evalExpr(parts[0], scope);
+        const right = evalExpr(parts[1], scope);
+        if (op === '>=') return Number(left) >= Number(right);
+        if (op === '<=') return Number(left) <= Number(right);
+        if (op === '==') return left == right;
+        if (op === '!=') return left != right;
+        if (op === '>') return Number(left) > Number(right);
+        if (op === '<') return Number(left) < Number(right);
+      }
+    }
+    return Boolean(evalExpr(s, scope));
+  }
+
+  function executePythonCode(code, outputCallback, completionCallback) {
+    const lines = code.split('\n');
+    const scope = {};
+    let outputText = "";
+
+    function printOut(msg) {
+      outputText += (msg !== undefined ? msg : "") + "\n";
+      outputCallback(outputText);
+    }
+
+    // Detectar llamadas a input()
+    const inputPrompts = [];
+    for (let i = 0; i < lines.length; i++) {
+      let line = stripInlineComment(lines[i]).trim();
+      if (line === '') continue;
+      if (line.includes('input(')) {
+        let idx = line.indexOf('input(');
+        let depth = 0;
+        let end = -1;
+        for (let k = idx + 5; k < line.length; k++) {
+          if (line[k] === '(') depth++;
+          if (line[k] === ')') {
+            if (depth === 1) { end = k; break; }
+            depth--;
+          }
+        }
+        if (end !== -1) {
+          const promptExpr = line.substring(idx + 6, end);
+          inputPrompts.push(evalExpr(promptExpr, scope));
+        }
+      }
+    }
+
+    let inputIdx = 0;
+    const inputValues = [];
+
+    function processInputs(done) {
+      if (inputIdx < inputPrompts.length) {
+        askInput(inputPrompts[inputIdx], function(userVal) {
+          inputValues.push(userVal);
+          inputIdx++;
+          processInputs(done);
+        });
+      } else {
+        done();
+      }
+    }
+
+    processInputs(function() {
+      let currentInputValIdx = 0;
+      let skipBlock = false;
+      let branchTaken = false;
+
+      try {
+        for (let i = 0; i < lines.length; i++) {
+          let rawLine = stripInlineComment(lines[i]);
+          let line = rawLine.trim();
+
+          if (line === '') continue;
+
+          let isIndented = /^\s+/.test(rawLine);
+          if (!isIndented) skipBlock = false;
+          if (skipBlock && isIndented) continue;
+
+          // Condicional IF
+          if (line.startsWith('if ') && line.endsWith(':')) {
+            branchTaken = evalCondition(line.substring(3, line.length - 1), scope);
+            skipBlock = !branchTaken;
+            continue;
+          }
+
+          // Condicional ELIF
+          if (line.startsWith('elif ') && line.endsWith(':')) {
+            if (branchTaken) {
+              skipBlock = true;
+            } else {
+              branchTaken = evalCondition(line.substring(5, line.length - 1), scope);
+              skipBlock = !branchTaken;
+            }
+            continue;
+          }
+
+          // Condicional ELSE
+          if (line.startsWith('else:')) {
+            skipBlock = branchTaken;
+            continue;
+          }
+
+          // Reemplazo de input()
+          while (line.includes('input(')) {
+            let idx = line.indexOf('input(');
+            let depth = 0;
+            let end = -1;
+            for (let k = idx + 5; k < line.length; k++) {
+              if (line[k] === '(') depth++;
+              if (line[k] === ')') {
+                if (depth === 1) { end = k; break; }
+                depth--;
+              }
+            }
+            if (end !== -1) {
+              let val = inputValues[currentInputValIdx] !== undefined ? inputValues[currentInputValIdx] : "";
+              currentInputValIdx++;
+              line = line.substring(0, idx) + JSON.stringify(val) + line.substring(end + 1);
+            } else {
+              break;
+            }
+          }
+
+          // Asignación de variables
+          if (line.includes('=') && !line.includes('==') && !line.includes('!=') && !line.includes('>=') && !line.includes('<=')) {
+            let eqIdx = line.indexOf('=');
+            let varName = line.substring(0, eqIdx).trim();
+            let varExpr = line.substring(eqIdx + 1).trim();
+            scope[varName] = evalExpr(varExpr, scope);
+            continue;
+          }
+
+          // Instrucción print(...) con soporte para múltiples argumentos separados por coma
+          if (line.startsWith('print(') && line.endsWith(')')) {
+            let inner = line.substring(6, line.length - 1).trim();
+            if (inner === "") {
+              printOut("");
+            } else {
+              let args = splitTopLevel(inner, ',');
+              let evaluatedArgs = args.map(arg => evalExpr(arg, scope));
+              printOut(evaluatedArgs.join(' '));
+            }
+            continue;
+          }
+        }
+        completionCallback(null, outputText);
+      } catch(err) {
+        printOut("Error: " + err.message);
+        completionCallback(err, outputText);
+      }
+    });
+  }
+
+  function runCode(step, type) {
+    const editorId = `code-${step}-${type}`;
+    const code = document.getElementById(editorId).value;
+    const outEl = document.getElementById(`out-${step}-${type}`);
+    const fbEl = document.getElementById(`fb-${step}-${type}`);
+
+    // Verificar si el estudiante dejó solo comentarios
+    const activeLines = code.split('\n').map(l => stripInlineComment(l).trim()).filter(l => l !== '');
+    if (activeLines.length === 0) {
+      outEl.innerText = "(No hay instrucciones ejecutables aún)";
+      fbEl.style.display = 'block';
+      fbEl.className = 'feedback-msg error';
+      fbEl.innerText = "Escribe tu código debajo de las pistas y vuelve a presionar Ejecutar.";
+      return;
+    }
+
+    outEl.innerText = "Ejecutando...";
+    fbEl.style.display = 'none';
+
+    executePythonCode(code, function(currentOutput) {
+      outEl.innerText = currentOutput;
+    }, function(err, finalOutput) {
+      outEl.innerText = finalOutput || (err ? "Error al ejecutar." : "(Sin salida)");
+      validateSubmission(step, type, code, finalOutput, fbEl);
+    });
+  }
+
+  function validateSubmission(step, type, code, output, fbEl) {
+    fbEl.style.display = 'block';
+    let isOk = false;
+    let msg = "";
+    const outTrim = (output || "").trim();
+    const codeClean = code.toLowerCase();
+
+    if (step === 1 && type === 'guided') {
+      if (outTrim.length > 0 && outTrim !== "(Sin salida)" && codeClean.includes('print')) {
+        isOk = true; msg = "¡Excelente! Has almacenado el texto e impreso su valor correctamente. (+10 pts)"; progress.s1_guided = true;
+      } else { msg = "Recuerda usar print() para mostrar la variable en la consola de salida."; }
+    } else if (step === 1 && type === 'auto') {
+      if (/\d+/.test(outTrim) && codeClean.includes('print') && codeClean.includes('=')) {
+        isOk = true; msg = "¡Bien hecho! Creaste una variable numérica e imprimiste su valor. (+15 pts)"; progress.s1_auto = true;
+      } else { msg = "Debes declarar una variable con un valor numérico (ej: edad = 12) e imprimirla con print(edad)."; }
+    } else if (step === 2 && type === 'guided') {
+      if (codeClean.includes('input') && codeClean.includes('print') && outTrim.length > 0) {
+        isOk = true; msg = "¡Excelente! Comprendiste cómo solicitar un dato con input(). (+10 pts)"; progress.s2_guided = true;
+      } else { msg = "Asegúrate de ejecutar la instrucción input() y mostrar el resultado."; }
+    } else if (step === 2 && type === 'auto') {
+      if (codeClean.includes('input') && codeClean.includes('print') && outTrim.length > 0) {
+        isOk = true; msg = "¡Genial! Leíste el color favorito del usuario de forma autónoma. (+15 pts)"; progress.s2_auto = true;
+      } else { msg = "Usa input() para guardar el color y luego imprime el resultado con print()."; }
+    } else if (step === 3 && type === 'guided') {
+      if (codeClean.includes('if') && codeClean.includes('else') && (outTrim.includes('menor') || outTrim.includes('mayor'))) {
+        isOk = true; msg = "¡Correcto! Evaluaste la variable adecuadamente con if/else. (+10 pts)"; progress.s3_guided = true;
+      } else { msg = "Verifica que el código mantenga la estructura if / else."; }
+    } else if (step === 3 && type === 'auto') {
+      if (codeClean.includes('input') && codeClean.includes('if') && codeClean.includes('else') && outTrim.length > 0) {
+        isOk = true; msg = "¡Muy bien! Lograste combinar input() con un condicional if/else. (+15 pts)"; progress.s3_auto = true;
+      } else { msg = "Debes pedir un número con int(input()) y luego comparar con 10 usando if / else."; }
+    } else if (step === 4 && type === 'project') {
+      const hasInput = codeClean.includes('input');
+      const hasIfElse = codeClean.includes('if') && codeClean.includes('else');
+      const hasHola = outTrim.toLowerCase().includes('hola');
+      const hasEdad = outTrim.toLowerCase().includes('edad');
+      const hasStatus = outTrim.toLowerCase().includes('mayor') || outTrim.toLowerCase().includes('menor');
+
+      if (hasInput && hasIfElse && hasHola && hasEdad && hasStatus) {
+        isOk = true; msg = "¡PROYECTO INTEGRADOR COMPLETADO! (+25 pts)"; progress.s4_project = true;
+      } else {
+        msg = "Revisa los requisitos: pide nombre y año, imprime 'Hola... Su edad es...' y usa if/else para indicar si es mayor o menor de edad.";
+      }
+    }
+
+    if (isOk) {
+      fbEl.className = 'feedback-msg success';
+      fbEl.innerText = msg;
+    } else {
+      fbEl.className = 'feedback-msg error';
+      fbEl.innerText = msg;
+    }
+
+    calculateScore();
+  }
+
+  function finishModule() {
+    const finalScore = calculateScore();
+    document.querySelectorAll('.lesson-section').forEach(el => el.classList.remove('active'));
+    document.getElementById('step-5').classList.add('active');
+    document.getElementById('final-score-val').textContent = `${finalScore} / 100`;
+    document.getElementById('summary-msg').textContent = finalScore >= 70 ? "¡Felicidades! Aprobaste satisfactoriamente el taller." : "Módulo finalizado.";
+  }
+</script>
+</body>
+</html>
